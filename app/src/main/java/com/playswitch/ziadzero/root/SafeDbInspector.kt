@@ -14,6 +14,7 @@ object SafeDbInspector {
      * falling back automatically to isolated RW staging when sidecars exist or locking occurs.
      */
     fun <T> withSafeReadDb(sourceDbPath: String, block: (SQLiteDatabase) -> T): T {
+        SqliteCompatFixer.apply()
         val src = File(sourceDbPath)
         require(src.exists()) { "Database not found: $sourceDbPath" }
         val hasSidecars = RootPaths.sqliteSidecarPaths(sourceDbPath).any { File(it).exists() }

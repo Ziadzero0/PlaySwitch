@@ -229,8 +229,30 @@ class PlayOwnershipSqlTest {
             listOf("com.split.pkg"),
             MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.SPLIT_ACCOUNTS).map { it.packageName }
         )
+        assertEquals(
+            listOf("com.whatsapp", "com.local.mod", "com.split.pkg", "com.android.vending"),
+            MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.INSTALLED).map { it.packageName }
+        )
         assertTrue(
             MainViewModel.filterApps(sample, "whats", includeSystemApps = false, accountFilter = AccountFilter.All).map { it.packageName } == listOf("com.whatsapp")
+        )
+    }
+
+    @Test
+    fun appFilter_installedExcludesOnlyUninstalled() {
+        val sample = listOf(
+            EnrichedPlayApp("com.active.app", "Active", AppInstallStatus.INSTALLED, false, "a@gmail.com", "a@gmail.com", emptyList()),
+            EnrichedPlayApp("com.disabled.app", "Disabled", AppInstallStatus.DISABLED, false, null, null, emptyList()),
+            EnrichedPlayApp("com.removed.app", "Removed", AppInstallStatus.UNINSTALLED, false, "a@gmail.com", null, emptyList())
+        )
+
+        assertEquals(
+            listOf("com.active.app", "com.disabled.app"),
+            MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.INSTALLED).map { it.packageName }
+        )
+        assertEquals(
+            listOf("com.removed.app"),
+            MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.UNINSTALLED).map { it.packageName }
         )
     }
 }

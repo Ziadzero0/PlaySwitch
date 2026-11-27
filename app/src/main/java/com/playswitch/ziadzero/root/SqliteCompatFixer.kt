@@ -14,7 +14,8 @@ object SqliteCompatFixer {
     @Volatile
     private var applied = false
 
-    @SuppressLint("PrivateApi", "DiscouragedPrivateApi")
+    // Runs inside the uid=0 root app_process (exempt from non-SDK enforcement) and safely guarded by runCatching.
+    @SuppressLint("PrivateApi", "DiscouragedPrivateApi", "SoonBlockedPrivateApi")
     fun apply() {
         if (applied) return
         synchronized(this) {

@@ -14,6 +14,10 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
 class RootAccountService : RootService() {
+    init {
+        SqliteCompatFixer.apply()
+    }
+
     private val serviceLock = ReentrantLock()
 
     private val binder = object : IRootAccountService.Stub() {

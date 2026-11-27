@@ -12,6 +12,7 @@ import com.playswitch.ziadzero.model.RootJsonCodec
 import com.playswitch.ziadzero.root.BackupManager
 import com.playswitch.ziadzero.root.FinskyXmlHelper
 import com.playswitch.ziadzero.root.RootShell
+import com.playswitch.ziadzero.root.SqliteCompatFixer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -239,5 +240,11 @@ class Step2CoreTest {
         } finally {
             tempRoot.deleteRecursively()
         }
+    }
+
+    @Test
+    fun sqliteCompatFixer_isIdempotentAndSafeOutsideAndroidRuntime() {
+        SqliteCompatFixer.apply()
+        SqliteCompatFixer.apply()
     }
 }

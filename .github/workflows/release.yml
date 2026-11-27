@@ -150,8 +150,20 @@ jobs:
         shell: bash
         run: |
           VER="${{ steps.meta.outputs.version_name }}"
-          IS_PRE="${{ steps.meta.outputs.prerelease }}"
           PREV_TAG=$(git tag --sort=-v:refname | grep -v "^v${VER}\$" | head -n1 || true)
+          CHANGELOG_BLOCK=""
+          if [ -f CHANGELOG.md ]; then
+            CHANGELOG_BLOCK=$(python3 - "$VER" <<'PY'
+          import re, sys
+          ver = sys.argv[1]
+          with open("CHANGELOG.md", "r", encoding="utf-8") as f:
+              text = f.read()
+          m = re.search(rf"^## \[{re.escape(ver)}\][^\n]*\n(.*?)(?=^## \[|\Z)", text, re.M | re.S)
+          if m:
+              print(m.group(1).strip())
+          PY
+            )
+          fi
 
           {
             if [ -z "$PREV_TAG" ]; then
@@ -166,12 +178,22 @@ jobs:
               echo "## Play Switch v${VER} (Stable)"
             fi
             echo ""
-            echo "### What's Inside"
-            echo "- Switch your phone's primary Google account without removing your other accounts *(requires a restart)*."
-            echo "- Change which Google account an app uses in Google Play (**Purchases**, **Updates**, or **Both**) right away without restarting."
-            echo "- Clear stuck per-app Google sign-in links."
-            echo "- Automatic backups (with ZIP export/import) and safety checks before editing system or Play Store files."
-            echo ""
+            if [ -n "$CHANGELOG_BLOCK" ]; then
+              echo "$CHANGELOG_BLOCK"
+              echo ""
+            elif [ -n "$PREV_TAG" ]; then
+              echo "### What's Changed"
+              git log "${PREV_TAG}..HEAD" --pretty=format:"- %s"
+              echo ""
+              echo ""
+            else
+              echo "### What's Inside"
+              echo "- Switch your phone's primary Google account without removing your other accounts *(requires a restart)*."
+              echo "- Change which Google account an app uses in Google Play (**Purchases**, **Updates**, or **Both**) right away without restarting."
+              echo "- Clear stuck per-app Google sign-in links."
+              echo "- Automatic backups (with ZIP export/import) and safety checks before editing system or Play Store files."
+              echo ""
+            fi
             echo "### Which File to Download"
             echo "- **\`PlaySwitch-v${VER}.apk\`** *(Recommended)* — Main app for daily use (\`com.playswitch.ziadzero\`)."
             echo "- **\`PlaySwitch-v${VER}-debug.apk\`** *(Optional Debug)* — Installs side-by-side (\`com.playswitch.ziadzero.debug\`) for testing or capturing logs without replacing your main app."
@@ -180,7 +202,12 @@ jobs:
             echo "### Requirements"
             echo "- Rooted Android **10+** via **Magisk**, **KernelSU**, or **APatch**"
             echo "- Google Play Store (\`com.android.vending\`)"
+            if [ -n "$PREV_TAG" ]; then
+              echo ""
+              echo "**Full Changelog:** https://github.com/Ziadzero0/PlaySwitch/compare/${PREV_TAG}...v${VER}"
+            fi
           } > dist/RELEASE_NOTES.md
+          cat dist/RELEASE_NOTES.md
 
       - name: Clean Up Keystore File
         if: always()

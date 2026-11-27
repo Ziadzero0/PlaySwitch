@@ -371,12 +371,18 @@ fun HealthDiagnosticsModalSheet(
             }
 
             if (env == null) {
+                val isSnapshotError = statusMessage.startsWith("Snapshot failed:", ignoreCase = true) ||
+                    statusMessage.startsWith("Environment check failed:", ignoreCase = true)
                 Card(
                     colors = CardDefaults.cardColors(containerColor = statusColors.dangerBg),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Root shell daemon not connected. Grant root access to Play Switch in Magisk, KernelSU, or APatch and tap Refresh.",
+                        text = if (isSnapshotError) {
+                            "Root daemon connected, but environment snapshot failed: $statusMessage"
+                        } else {
+                            "Root shell daemon not connected. Grant root access to Play Switch in Magisk, KernelSU, or APatch and tap Refresh."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = statusColors.dangerFg,
                         modifier = Modifier.padding(14.dp)

@@ -116,6 +116,7 @@ fun AppsScreen(
 
     val scopeStats = remember(scopeApps, apps) {
         val userTotal = apps.count { !it.isSystemApp }
+        val installedCount = scopeApps.count { it.installStatus == AppInstallStatus.INSTALLED }
         val unassignedCount = scopeApps.count { it.account.isNullOrBlank() }
         val disabledCount = scopeApps.count { it.installStatus == AppInstallStatus.DISABLED }
         val uninstalledCount = scopeApps.count { it.installStatus == AppInstallStatus.UNINSTALLED }
@@ -130,6 +131,7 @@ fun AppsScreen(
         }
         ScopeStats(
             userTotal = userTotal,
+            installedCount = installedCount,
             unassignedCount = unassignedCount,
             disabledCount = disabledCount,
             uninstalledCount = uninstalledCount,
@@ -381,6 +383,7 @@ fun AppsScreen(
             Box {
                 val statusLabel = when (statusFilter) {
                     AppStatusFilter.ALL -> "Status"
+                    AppStatusFilter.INSTALLED -> "Installed (${scopeStats.installedCount})"
                     AppStatusFilter.DISABLED -> "Disabled (${scopeStats.disabledCount})"
                     AppStatusFilter.UNINSTALLED -> "Uninstalled (${scopeStats.uninstalledCount})"
                     AppStatusFilter.SPLIT_ACCOUNTS -> "Split (${scopeStats.splitCount})"
@@ -414,6 +417,7 @@ fun AppsScreen(
                 ) {
                     val entries = listOf(
                         AppStatusFilter.ALL to "All Status (${scopeApps.size})",
+                        AppStatusFilter.INSTALLED to "Installed (${scopeStats.installedCount})",
                         AppStatusFilter.DISABLED to "Disabled (${scopeStats.disabledCount})",
                         AppStatusFilter.UNINSTALLED to "Uninstalled (${scopeStats.uninstalledCount})",
                         AppStatusFilter.SPLIT_ACCOUNTS to "Split Billing / Update (${scopeStats.splitCount})"
@@ -645,6 +649,7 @@ fun AppsScreen(
 
 private data class ScopeStats(
     val userTotal: Int,
+    val installedCount: Int,
     val unassignedCount: Int,
     val disabledCount: Int,
     val uninstalledCount: Int,

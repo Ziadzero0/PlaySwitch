@@ -229,6 +229,10 @@ class PlayOwnershipSqlTest {
             listOf("com.split.pkg"),
             MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.SPLIT_ACCOUNTS).map { it.packageName }
         )
+        assertEquals(
+            listOf("com.whatsapp", "com.split.pkg", "com.android.vending"),
+            MainViewModel.filterApps(sample, "", includeSystemApps = true, accountFilter = AccountFilter.All, com.playswitch.ziadzero.ui.AppStatusFilter.INSTALLED).map { it.packageName }
+        )
         assertTrue(
             MainViewModel.filterApps(sample, "whats", includeSystemApps = false, accountFilter = AccountFilter.All).map { it.packageName } == listOf("com.whatsapp")
         )

@@ -30,6 +30,7 @@ sealed interface AccountFilter {
 
 enum class AppStatusFilter(val label: String, val shortLabel: String) {
     ALL("All Status", "All Status"),
+    INSTALLED("Installed", "Installed"),
     DISABLED("Disabled", "Disabled"),
     UNINSTALLED("Uninstalled", "Uninstalled"),
     SPLIT_ACCOUNTS("Split Billing / Update", "Split")
@@ -48,7 +49,7 @@ data class MainUiState(
     val snackbarMessage: String? = null,
     val activeTab: Int = 0,
     val searchQuery: String = "",
-    val includeSystemApps: Boolean = false,
+    val includeSystemApps: Boolean = true,
     val accountFilter: AccountFilter = AccountFilter.All,
     val appStatusFilter: AppStatusFilter = AppStatusFilter.ALL
 )
@@ -455,6 +456,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val matchesStatus = when (statusFilter) {
                     AppStatusFilter.ALL -> true
+                    AppStatusFilter.INSTALLED -> app.installStatus != AppInstallStatus.UNINSTALLED
                     AppStatusFilter.DISABLED -> app.installStatus == AppInstallStatus.DISABLED
                     AppStatusFilter.UNINSTALLED -> app.installStatus == AppInstallStatus.UNINSTALLED
                     AppStatusFilter.SPLIT_ACCOUNTS -> !app.accountForUpdate.isNullOrBlank() &&

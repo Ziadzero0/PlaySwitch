@@ -192,36 +192,70 @@ class AppMetadataRepository(private val context: Context) {
         }
     }
 
-    private fun loadInstalledMap(pm: PackageManager): Map<String, ApplicationInfo> {
-        val baseFlags = PackageManager.MATCH_DISABLED_COMPONENTS or
+    private fun baseQueryFlags(): Int =
+        PackageManager.MATCH_DISABLED_COMPONENTS or
             PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS or
-            PackageManager.MATCH_UNINSTALLED_PACKAGES
+            PackageManager.MATCH_UNINSTALLED_PACKAGES or
+            PackageManager.MATCH_APEX
 
-        val list = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            val flags = baseFlags.toLong() or PackageManager.MATCH_ARCHIVED_PACKAGES
-            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(flags))
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(baseFlags.toLong()))
+    private fun longQueryFlags(includeArchived: Boolean): Long {
+        val base = baseQueryFlags().toLong()
+        return if (includeArchived && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            base or PackageManager.MATCH_ARCHIVED_PACKAGES
         } else {
-            @Suppress("DEPRECATION")
-            pm.getInstalledApplications(baseFlags)
+            base
         }
-        return list.associateBy { it.packageName }
+    }
+
+    private fun loadInstalledMap(pm: PackageManager): Map<String, ApplicationInfo> {
+        val legacyFlags = baseQueryFlags()
+        val map = HashMap<String, ApplicationInfo>()
+
+        val appList = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(longQueryFlags(includeArchived = true)))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstalledApplications(legacyFlags)
+            }
+        }.getOrDefault(emptyList())
+        for (app in appList) {
+            map[app.packageName] = app
+        }
+
+        // getInstalledPackages with MATCH_APEX captures active Mainline APEX modules omitted by getInstalledApplications.
+        val pkgList = runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getInstalledPackages(PackageManager.PackageInfoFlags.of(longQueryFlags(includeArchived = false)))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getInstalledPackages(legacyFlags)
+            }
+        }.getOrDefault(emptyList())
+        for (pkg in pkgList) {
+            pkg.applicationInfo?.let { app ->
+                map.putIfAbsent(pkg.packageName, app)
+            }
+        }
+
+        return map
     }
 
     private fun resolveFallbackAppInfo(pm: PackageManager, packageName: String): ApplicationInfo? {
-        val baseFlags = PackageManager.MATCH_DISABLED_COMPONENTS or
-            PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS or
-            PackageManager.MATCH_UNINSTALLED_PACKAGES
+        val legacyFlags = baseQueryFlags()
         return runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                val flags = baseFlags.toLong() or PackageManager.MATCH_ARCHIVED_PACKAGES
-                pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(flags))
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(baseFlags.toLong()))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getApplicationInfo(packageName, PackageManager.ApplicationInfoFlags.of(longQueryFlags(includeArchived = true)))
             } else {
                 @Suppress("DEPRECATION")
-                pm.getApplicationInfo(packageName, baseFlags)
+                pm.getApplicationInfo(packageName, legacyFlags)
+            }
+        }.recoverCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(longQueryFlags(includeArchived = false))).applicationInfo
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(packageName, legacyFlags).applicationInfo
             }
         }.getOrNull()
     }
